@@ -1,0 +1,18 @@
+{
+  "name": "t3",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "build": "npm install"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bn.js": "^5.1.1",
+    "buffer": "^5.4.3",
+    "slopes": "file:../../slopes"
+  },
+  "devDependencies": {}
+}
