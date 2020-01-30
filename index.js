@@ -62,9 +62,9 @@ let creatingassets = async () => {
     return txid;
 }
 
-let sendingassets = async (assetid) => {
+let sendingassets = async (utxos, assetid) => {
     let myAddresses = avm.keyChain().getAddresses(); //returns an array of addresses the keychain manages
-    let utxos = await avm.getUTXOs(myAddresses);
+
     let mybalance = utxos.getBalance(myAddresses, assetid); //returns 400 as a BN
     let sendAmount = new BN(100); //amounts are in BN format
     let friendsAddress = "B6D4v1VtPYLbiUvYXtW4Px8oE9imC2vGW"; //AVA serialized address format
@@ -74,22 +74,43 @@ let sendingassets = async (assetid) => {
 
     return txid;
 }
-
+let assetIDList = [];
+let utxosGlobal;
 managekeys().then(() => {
     return creatingassets();
 }).then((assetid) => {
+    assetIDList.push(assetid);
+}).then(() => {
+    return creatingassets();
+}).then((assetid) => {
+    assetIDList.push(assetid);
+}).then(() => {
     setTimeout(() => {  
-        sendingassets(assetid).then((txid) => {
-            let cb = async () => {  
+        let boyyy = avm.keyChain().getAddresses();
+        console.log("boyyy", JSON.stringify(boyyy));
+        avm.getUTXOs(boyyy).then((result) => {
+            utxosGlobal = result;
+            console.log("utxosGlobal", JSON.stringify(utxosGlobal.getAllUTXOs()));
+            let cb = async (txid, assetid) => {  
                 let myAddresses = avm.keyChain().getAddresses(); //returns an array of addresses the keychain manages
                 let sendAmount = new BN(100); //amounts are in BN format
                 // returns one of: "Accepted", "Processing", "Unknown", and "Rejected"
                 let status = await avm.getTxStatus(txid);
+                console.log(status);
                 let updatedUTXOs = await avm.getUTXOs();
                 let newBalance = updatedUTXOs.getBalance(myAddresses, assetid);
+                console.log("New Balance ")
             };
-            setTimeout(cb, 5000);
-        }); 
+            sendingassets(utxosGlobal, assetIDList[0]).then((txid) => {
+                setTimeout(() => cb(txid, assetIDList[0]), 5000);
+            }).then(()=>{
+                sendingassets(utxosGlobal, assetIDList[1]).then((txid) => {
+                    setTimeout(() => cb(txid, assetIDList[1]), 5000);
+                }).then(() => {
+                    console.log("Done sending.");
+                });
+            });
+        });
     }, 5000);
 });
 

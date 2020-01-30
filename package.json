@@ -12,7 +12,7 @@
   "dependencies": {
     "bn.js": "^5.1.1",
     "buffer": "^5.4.3",
-    "slopes": "^1.1.5"
+    "slopes": "file:../../slopes"
   },
   "devDependencies": {}
 }
