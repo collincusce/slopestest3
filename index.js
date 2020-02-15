@@ -4,7 +4,7 @@ const Buffer = require('buffer/').Buffer;
 
 let bintools = slopes.BinTools.getInstance();
 
-let ava = new slopes.Slopes("localhost", 9650, "http", 12345, "2PfbSxTqpTGFF2xCX2YgrW6ncrksfmEhcNXGv9rE9CgTRqT4hM");
+let ava = new slopes.Slopes("localhost", 9650, "http", 12345, "GJABrZ9A6UQFpwjPU8MDxDd8vuyRoDVeDAXc694wJ5t3zEkhU");
 let avm = ava.AVM(); //returns a reference to the AVM API used by Slopes
 
 let managekeys = async () => {
@@ -26,8 +26,8 @@ let managekeys = async () => {
     //creating a new random keypair
     keypair = new slopes.AVMKeyPair(); 
     keypair.generateKey();
-    //let mypk2 = Buffer.from("021ee5e48e70e336d82d894c8f80c8109fd75651720cf662661236d22ab7b7b6", "hex");
-    //let successful = keypair.importKey(mypk2); //returns boolean if private key imported successfully
+    let mypk2 = Buffer.from("021ee5e48e70e336d82d894c8f80c8109fd75651720cf662661236d22ab7b7b6", "hex");
+    let successful = keypair.importKey(mypk2); //returns boolean if private key imported successfully
 
     let message = "Wubalubadubdub";
     let signature = keypair.sign(message); //returns a Buffer with the signature
@@ -38,22 +38,36 @@ let managekeys = async () => {
 }
 
 let creatingassets = async () => {
-    // The amount to mint for the asset
-    let amount = new BN(400);
+    // The fee to pay for the asset
+    let fee = new BN(0);
 
     let addresses = avm.keyChain().getAddresses();
-
-    // We require 2 addresses to sign in order to spend this initial asset's minted coins
-    let threshold = 2;
     
-    //Create an output to issue to the network
-    let output = new slopes.OutCreateAsset(amount, addresses, undefined, threshold);
+    // Create outputs for the asset's initial state
+    let secpbase1 = new slopes.SecpOutBase(new BN(400), addresses);
+    let secpbase2 = new slopes.SecpOutBase(new BN(500), [addresses[1]]);
+    let secpbase3 = new slopes.SecpOutBase(new BN(600), [addresses[1], addresses[2]]);
 
-    //A manually created TxUinsigned needs to its networkID and the blockchainID
-    let networkID = ava.getNetworkID();
-    let blockchainID = bintools.avaDeserialize(ava.AVM().getBlockchainID());
+    // Populate the initialState array
+    let initialState = new slopes.InitialStates();
+    initialState.addOutput(secpbase1, slopes.AVMConstants.SECPFXID);
+    initialState.addOutput(secpbase2, slopes.AVMConstants.SECPFXID);
+    initialState.addOutput(secpbase3, slopes.AVMConstants.SECPFXID);
 
-    let unsigned = new slopes.TxUnsigned([], [output], networkID, blockchainID);
+    // Name our new coin and give it a symbol
+    let name = "Rickcoin is the most intelligent coin";
+    let symbol = "RICK";
+
+    // Where is the decimal point indicate what 1 asset is and where fractional assets begin
+    // Ex: 1 $AVA is denomination 9, so the smallest unit of $AVA is nano-AVA ($nAVA) at 10^-9 $AVA
+    let denomination = 9;
+
+    // Fetch the UTXOSet for our addresses
+    let utxos = await avm.getUTXOs(addresses);
+
+    // Make an unsigned Create Asset transaction from the data compiled earlier
+    let unsigned = await avm.makeCreateAssetTx(utxos, fee, addresses, initialState, name, symbol, denomination);
+
     let signed = avm.keyChain().signTx(unsigned); //returns a Tx class
 
     // using the Tx class
@@ -67,15 +81,15 @@ let sendingassets = async (utxos, assetid) => {
 
     let mybalance = utxos.getBalance(myAddresses, assetid); //returns 400 as a BN
     let sendAmount = new BN(100); //amounts are in BN format
-    let friendsAddress = "B6D4v1VtPYLbiUvYXtW4Px8oE9imC2vGW"; //AVA serialized address format
-    let unsignedTx = avm.makeUnsignedTx(utxos, sendAmount, [friendsAddress], myAddresses, myAddresses, assetid); 
+    let friendsAddress = "X-B6D4v1VtPYLbiUvYXtW4Px8oE9imC2vGW"; //AVA serialized address format
+    let unsignedTx = await avm.makeUnsignedTx(utxos, sendAmount, [friendsAddress], myAddresses, myAddresses, assetid); 
     let signedTx = avm.signTx(unsignedTx);
-    console.log("SIGNED", signedTx.toString("hex"));
     let txid = await avm.issueTx(signedTx);
 
     return txid;
 }
 
+/*
 let assetID = bintools.avaDeserialize("2KBJoSQV3aQ4SHrZh3HRXacFZhEvdmCRsQV1JuLzuqeWytiKWn");
 
 managekeys().then(() => {
@@ -98,8 +112,8 @@ managekeys().then(() => {
         })
     });
 });
+*/
 
-/*
 let assetIDList = [];
 let utxosGlobal;
 managekeys().then(() => {
@@ -112,20 +126,21 @@ managekeys().then(() => {
     assetIDList.push(assetid);
 }).then(() => {
     setTimeout(() => {  
-        let boyyy = avm.keyChain().getAddresses();
-        console.log("boyyy", JSON.stringify(boyyy));
-        avm.getUTXOs(boyyy).then((result) => {
+        let addrs = avm.keyChain().getAddressStrings();
+        avm.getUTXOs(addrs).then((result) => {
             utxosGlobal = result;
-            console.log("utxosGlobal", JSON.stringify(utxosGlobal.getAllUTXOs()));
             let cb = async (txid, assetid) => {  
                 let myAddresses = avm.keyChain().getAddresses(); //returns an array of addresses the keychain manages
                 let sendAmount = new BN(100); //amounts are in BN format
                 // returns one of: "Accepted", "Processing", "Unknown", and "Rejected"
                 let status = await avm.getTxStatus(txid);
-                console.log(status);
-                let updatedUTXOs = await avm.getUTXOs();
-                let newBalance = updatedUTXOs.getBalance(myAddresses, assetid);
-                console.log("New Balance ")
+                if(status == "Accepted"){
+                    let updatedUTXOs = await avm.getUTXOs(myAddresses);
+                    let newBalance = updatedUTXOs.getBalance(myAddresses, assetid);
+                    console.log("New balance: " + newBalance.toNumber());
+                } else {
+                    console.log("Unexpected status: " + status);
+                }
             };
             sendingassets(utxosGlobal, assetIDList[0]).then((txid) => {
                 setTimeout(() => cb(txid, assetIDList[0]), 5000);
@@ -135,8 +150,7 @@ managekeys().then(() => {
                 }).then(() => {
                     console.log("Done sending.");
                 });
-            });
-        });
+            }).catch((e) => console.log(e));
+        }).catch((e) => console.log(e));
     }, 5000);
-});
-*/
+}).catch((e) => console.log(e));
