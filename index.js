@@ -29,7 +29,7 @@ let managekeys = async () => {
     let mypk2 = Buffer.from("021ee5e48e70e336d82d894c8f80c8109fd75651720cf662661236d22ab7b7b6", "hex");
     let successful = keypair.importKey(mypk2); //returns boolean if private key imported successfully
 
-    let message = "Wubalubadubdub";
+    let message = Buffer.from("Wubalubadubdub");
     let signature = keypair.sign(message); //returns a Buffer with the signature
     let signerPubk = keypair.recover(message, signature);
     let isValid = keypair.verify(message, signature, signerPubk); //returns a boolean
