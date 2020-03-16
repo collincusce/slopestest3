@@ -4,18 +4,21 @@ const Buffer = require('buffer/').Buffer;
 
 let bintools = slopes.BinTools.getInstance();
 
-let ava = new slopes.Slopes("localhost", 9650, "http", 12345, "GJABrZ9A6UQFpwjPU8MDxDd8vuyRoDVeDAXc694wJ5t3zEkhU");
+let ava = new slopes.Slopes("localhost", 9650, "http", 12345, "X");
 let avm = ava.AVM(); //returns a reference to the AVM API used by Slopes
 
 let managekeys = async () => {
     let myKeychain = avm.keyChain();
     let newAddress1 = myKeychain.makeKey();
-    let mypk = bintools.avaDeserialize("24jUJ9vZexUM6expyMcT48LBx27k1m7xpraoV62oSQAHdziao5");
-    let newAddress2 = myKeychain.importKey(mypk).toString();
+    let mypk = bintools.avaDeserialize("ewoqjP7PxY4yr3iLTpLisriqt94hdyDFNgchSxGGztUrTXtNN");
+    let newAddress2 = myKeychain.importKey(mypk)
     let addresses = myKeychain.getAddresses(); //returns an array of all addresses managed
     let exists = myKeychain.hasKey(newAddress1); //returns true if the address is managed
     let keypair = myKeychain.getKey(newAddress1); //returns the keypair class
     let myaddress = keypair.getAddress();
+
+let xkp = myKeychain.getKey(newAddress2);
+console.log("myaddress2", bintools.avaSerialize(xkp.getAddress()));
 
     let pubk = keypair.getPublicKey(); //returns Buffer
     let pubkstr = keypair.getPublicKeyString(); //returns an AVA serialized string
